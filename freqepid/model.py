@@ -3,6 +3,7 @@ import numpy as np
 
 import scipy.optimize as opt
 import scipy.linalg as la
+import scipy.stats as stats
 
 class Model:
     def __init__(self, g, pi, alpha=0.01, K=6.5, T0=6, family="nbinom"):
@@ -106,9 +107,9 @@ class Model:
         
         # calculate log-likelihood
         if self.family == 'normal':
-            return - self.T * np.log(nu) - np.sum((Y-EY)**2)/(2*nu**2)
+            return - self.T * np.log(nu) - np.nansum((Y-EY)**2)/(2*nu**2)
         elif self.family == 'nbinom':
-            return np.sum([_NBLL(yt, mt, nu) for yt, mt in zip(Y, EY)])
+            return np.nansum([_NBLL(yt, mt, nu) for yt, mt in zip(Y, EY)])
         else:
             raise
             
@@ -136,10 +137,14 @@ class Model:
         Yy = Y[Tyi:]
         Xy = A[:Ty]*(Gy@Y[:,None])
         
+        # initialize beta
         bhaty = np.linalg.lstsq(Xy, Yy)[0]
-        
-        minit = np.log(np.mean(Y[:Tyi])/self.alpha)
         binit = np.concatenate([[4*bhaty[0]/self.K-2], 4*bhaty[1:]/self.K])
+        
+        # initialize mu
+        # minit = np.log(np.nanmean(Y[:Tyi])/self.alpha)
+        log_err_ratio = np.log(Y / self.predict_EY(A, 0, binit))
+        minit = np.nanmean(log_err_ratio[np.isfinite(log_err_ratio)])
         
         return minit, binit
     
@@ -231,16 +236,16 @@ class Model:
                 raise
             
             # first derivative
-            dl_dm = np.sum(dl_dEY * dEY_dm)
-            dl_db = np.sum(dl_dEY * dEY_db, 1)
+            dl_dm = np.nansum(dl_dEY * dEY_dm)
+            dl_db = np.nansum(dl_dEY * dEY_db, 1)
 
             # second deivative
-            d2l_dm2 = np.sum(d2l_dEY2 * dEY_dm**2) \
-                    + np.sum(dl_dEY * d2EY_dm2)
-            d2l_dmdb = np.sum(d2l_dEY2 * dEY_dm * dEY_db, 1) \
-                     + np.sum(dl_dEY * d2EY_dmdb, 1)
-            d2l_db2 = np.sum(d2l_dEY2 * dEY_db * dEY_db[:,None,:], 2) \
-                    + np.sum(dl_dEY * d2EY_db2, 2)
+            d2l_dm2 = np.nansum(d2l_dEY2 * dEY_dm**2) \
+                    + np.nansum(dl_dEY * d2EY_dm2)
+            d2l_dmdb = np.nansum(d2l_dEY2 * dEY_dm * dEY_db, 1) \
+                     + np.nansum(dl_dEY * d2EY_dmdb, 1)
+            d2l_db2 = np.nansum(d2l_dEY2 * dEY_db * dEY_db[:,None,:], 2) \
+                    + np.nansum(dl_dEY * d2EY_db2, 2)
 
             dl_dmb = np.concatenate([[dl_dm], dl_db])
             d2l_dmb2 = np.concatenate([
@@ -308,10 +313,10 @@ class Model:
         # update nu
         if self.family == 'nbinom':
             return np.exp(opt.minimize_scalar(
-                lambda x: -np.sum([_NBLL(yt, mt, np.exp(x)) 
+                lambda x: -np.nansum([_NBLL(yt, mt, np.exp(x)) 
                                    for yt, mt in zip(Y, EY)])).x)
         elif self.family == 'normal':
-            return np.sqrt(np.mean((Y-EY)**2))
+            return np.sqrt(np.nanmean((Y-EY)**2))
         else:
             raise 
         
@@ -611,17 +616,73 @@ class Model:
                       %(t+1, time.time()-start_iter))
             
         return conf_band, theta_min, theta_max
+    
+    def confidence_Y(self, A, nu, mu, beta, alpha, 
+                     cov=None, cv=None, conf_EY=None, verbose=False):
+        # ndarray
+        A = np.array(A)
+        beta = np.array(beta)
+        
+        # parameter check
+        assert(len(A.shape) == 2)
+        
+        # parameter setting
+        self.GPi_setting(A.shape[0])
+        d = A.shape[1]
+        
+        assert(len(beta.shape) == 1)
+        assert(beta.shape[0] == d)
+        
+        
+        # get confidence band for EY
+        conf_band = np.zeros([self.T, 2])
+        if conf_EY is not None:
+            conf_EY = np.array(conf_EY)
+            assert(conf_EY.shape[0] == self.T)   
+        elif (cov is not None) and (cv is not None):
+            conf_EY, _, _ = self.confidence_EY(A, mu, beta, cov, cv, verbose)
+        else:
+            conf_EY = self.predict_EY(A, mu, beta)[:,None]
+        
+        # get confidence band for Y
+        if self.family == 'nbinom':
+                conf_band[:,0] = stats.nbinom.ppf(alpha/2, nu,
+                                                  nu/(nu+conf_EY[:,0]))
+                conf_band[:,1] = stats.nbinom.ppf(1-alpha/2, nu,
+                                                  nu/(nu+conf_EY[:,-1]))
+        elif self.family == 'normal':
+            conf_band[:,0] = (conf_EY[:,0] 
+                              + stats.norm.ppf(alpha/2) * nu)
+
+            conf_band[:,1] = (conf_EY[:,-1]
+                              + stats.norm.ppf(1-alpha/2) * nu)
+        else:
+            raise
+        
+            
+        return conf_band
             
 def _NBLL(y, m, r):
-    y = int(y)
-    return (np.sum(np.log(1+(r-1)/(np.arange(y)+1))) 
-            + r * np.log(r/(r+m)) 
-            + y * np.log(m/(r+m)))
+    if np.isfinite(y):
+        y = int(y)
+        return (np.sum(np.log(1+(r-1)/(np.arange(y)+1))) 
+                + r * np.log(r/(r+m)) 
+                + y * np.log(m/(r+m)))
+    else:
+        return np.nan
 
 def _dNBLL_dr(y, m, r):
-    y = int(y)
-    return (np.sum(1/(np.arange(y)+r)) + np.log(r/(r+m)) + (m-y)/(r+m))
+    if np.isfinite(y):
+        y = int(y)
+        return (np.sum(1/(np.arange(y)+r)) 
+                + np.log(r/(r+m)) + (m-y)/(r+m))
+    else:
+        return np.nan
 
 def _d2NBLL_dr2(y, m, r):
-    y = int(y)
-    return (-np.sum(1/(np.arange(y)+r)**2) + 1/r - 1/(r+m) + (m-y)/(r+m)**2)
+    if np.isfinite(y):
+        y = int(y)
+        return (-np.sum(1/(np.arange(y)+r)**2) 
+                + 1/r - 1/(r+m) + (m-y)/(r+m)**2)
+    else:
+        return nan

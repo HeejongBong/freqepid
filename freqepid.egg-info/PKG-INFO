@@ -1,0 +1,12 @@
+Metadata-Version: 2.1
+Name: freqepid
+Version: 1.0.0
+Summary: FreqEpid: Frequentist Epidemiologist
+Home-page: http://github.com/HeejongBong/freqepid
+Author: Heejong Bong
+Author-email: hbong@andrew.cmu.edu
+License: MIT License
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python :: 3.5
+Classifier: Topic :: Scientific/Engineering
+License-File: LICENSE
