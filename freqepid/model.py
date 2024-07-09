@@ -29,10 +29,10 @@ class Model:
         self._pi[:min(self._pi.shape[0],T+self.T0)]
         self.pi = self.pi
 
-        self.Pi = self.alpha * np.concatenate([[0],self.pi])[np.maximum(
+        self.Pi = self.alpha * self.pi[np.maximum(
             0, np.arange(T)[:,None] - np.arange(T)
         )]
-        self.Pi0 = self.alpha * np.concatenate([[0],self.pi])[np.maximum(
+        self.Pi0 = self.alpha * self.pi[np.maximum(
             0, np.arange(T)[:,None] - np.arange(-self.T0,0)
         )]
         
@@ -40,10 +40,10 @@ class Model:
         self.g[:min(self._g.shape[0],T+self.T0)] = \
         self._g[:min(self._g.shape[0],T+self.T0)]
 
-        self.G = np.concatenate([[0],self.g])[np.maximum(
+        self.G = self.g[np.maximum(
             0, np.arange(T)[:,None] - np.arange(T)
         )]
-        self.G0 = np.concatenate([[0],self.g])[np.maximum(
+        self.G0 = self.g[np.maximum(
             0, np.arange(T)[:,None] - np.arange(-self.T0,0)
         )]
     
@@ -138,12 +138,12 @@ class Model:
         Xy = A[:Ty]*(Gy@Y[:,None])
         
         # initialize beta
-        bhaty = np.linalg.lstsq(Xy, Yy)[0]
+        bhaty = np.linalg.lstsq(Xy, Yy, rcond=None)[0]
         binit = np.concatenate([[4*bhaty[0]/self.K-2], 4*bhaty[1:]/self.K])
         
         # initialize mu
         # minit = np.log(np.nanmean(Y[:Tyi])/self.alpha)
-        log_err_ratio = np.log(Y / self.predict_EY(A, 0, binit))
+        log_err_ratio = np.log( np.maximum(Y,1) / self.predict_EY(A, 0, binit))
         minit = np.nanmean(log_err_ratio[np.isfinite(log_err_ratio)])
         
         return minit, binit
