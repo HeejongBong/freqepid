@@ -1,0 +1,13 @@
+LICENSE
+README.md
+pyproject.toml
+src/freqepid/__init__.py
+src/freqepid/cv.py
+src/freqepid/ebcr.py
+src/freqepid/model.py
+src/freqepid/utils.py
+src/freqepid.egg-info/PKG-INFO
+src/freqepid.egg-info/SOURCES.txt
+src/freqepid.egg-info/dependency_links.txt
+src/freqepid.egg-info/requires.txt
+src/freqepid.egg-info/top_level.txt

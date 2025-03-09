@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "freqepid"
+version = "1.1"
+dependencies =[
+    "numpy>=1.8",
+    "scipy",
+    "matplotlib",
+    "tqdm",
+    "pandas",
+    "pyarrow"
+]
+authors = [
+  { name="Heejong Bong", email="hbong@umich.edu" },
+]
+description = "FreqEpid: Frequentist Epidemiologist"
+readme = "README.md"
+requires-python = ">=3.5"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/HeejongBong/freqepid"
+"Bug Tracker" = "https://github.com/HeejongBong/freqepid/issues"

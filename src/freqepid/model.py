@@ -27,25 +27,28 @@ class Model:
         self.pi = np.zeros(T+self.T0)
         self.pi[:min(self._pi.shape[0],T+self.T0)] = \
         self._pi[:min(self._pi.shape[0],T+self.T0)]
-        self.pi = self.pi
 
-        self.Pi = self.alpha * self.pi[np.maximum(
-            0, np.arange(T)[:,None] - np.arange(T)
-        )]
-        self.Pi0 = self.alpha * self.pi[np.maximum(
-            0, np.arange(T)[:,None] - np.arange(-self.T0,0)
-        )]
+        self.Pi = self.alpha * np.where(
+            np.arange(T)[:,None] - np.arange(T) < 0, 0,
+            self.pi[np.maximum(0, np.arange(T)[:,None] - np.arange(T))],
+        )
+        self.Pi0 = self.alpha * np.where(
+            np.arange(T)[:,None] - np.arange(-self.T0,0) < 0, 0,
+            self.pi[np.maximum(0, np.arange(T)[:,None] - np.arange(-self.T0,0))],
+        )
         
         self.g = np.zeros(T+self.T0)
         self.g[:min(self._g.shape[0],T+self.T0)] = \
         self._g[:min(self._g.shape[0],T+self.T0)]
 
-        self.G = self.g[np.maximum(
-            0, np.arange(T)[:,None] - np.arange(T)
-        )]
-        self.G0 = self.g[np.maximum(
-            0, np.arange(T)[:,None] - np.arange(-self.T0,0)
-        )]
+        self.G = np.where(
+            np.arange(T)[:,None] - np.arange(T) < 0, 0,
+            self.g[np.maximum(0, np.arange(T)[:,None] - np.arange(T))],
+        )
+        self.G0 = np.where(
+            np.arange(T)[:,None] - np.arange(-self.T0,0) < 0, 0,
+            self.g[np.maximum(0, np.arange(T)[:,None] - np.arange(-self.T0,0))],
+        )
     
     def predict_R(self, A, beta):
         # ndarray
