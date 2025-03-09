@@ -143,7 +143,7 @@ class Model:
         
         # initialize mu
         # minit = np.log(np.nanmean(Y[:Tyi])/self.alpha)
-        log_err_ratio = np.log(Y / self.predict_EY(A, 0, binit))
+        log_err_ratio = np.log( np.maximum(Y,1) / self.predict_EY(A, 0, binit))
         minit = np.nanmean(log_err_ratio[np.isfinite(log_err_ratio)])
         
         return minit, binit

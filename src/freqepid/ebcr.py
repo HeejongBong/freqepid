@@ -4,7 +4,7 @@ import numpy.linalg as la
 import scipy.optimize as opt
 import scipy.stats as stats
 
-from freqepid import CV
+from .cv import CV
     
 class EBCR:
     tol = 1e-12
