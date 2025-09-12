@@ -1,4 +1,4 @@
-Metadata-Version: 2.2
+Metadata-Version: 2.1
 Name: freqepid
 Version: 1.1
 Summary: FreqEpid: Frequentist Epidemiologist
@@ -16,6 +16,7 @@ Requires-Dist: scipy
 Requires-Dist: matplotlib
 Requires-Dist: tqdm
 Requires-Dist: pandas
+Requires-Dist: pyarrow
 
 # Frequentist Epidemiologist
 Inference for Semi-Mechanistic Epidemic Models With Interventions
